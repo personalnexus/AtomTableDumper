@@ -29,7 +29,7 @@ namespace AtomTableDumper
             atomTableEntries.Clear();
             var buffer = new StringBuilder(1024);
 
-            for (int index = 0xC0FF; index <= 0xFFFF; index++)
+            for (int index = 0xC000; index <= 0xFFFF; index++)
             {
                 int bufferLength = getAtomTableEntry(index, buffer, buffer.Capacity);
                 if (bufferLength > 0)
