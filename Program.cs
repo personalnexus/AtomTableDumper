@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Xml.Serialization;
+using System.Threading;
 
 namespace AtomTableDumper
 {
@@ -10,16 +11,22 @@ namespace AtomTableDumper
         {
             string[] commandLineArguments = Environment.GetCommandLineArgs();
             string outputFileNameTemplate = commandLineArguments.Length >= 2 ? commandLineArguments[1] : "%TEMP%\\AtomTableDumper_%COMPUTERNAME%_{0:yyyy-MM_dd-HH-mm-ss}.xml";
-            string outputFileName = Environment.ExpandEnvironmentVariables(string.Format(outputFileNameTemplate, DateTime.Now));
+            TimeSpan loopInterval = commandLineArguments.Length >= 3 ? TimeSpan.Parse(commandLineArguments[2]) : TimeSpan.Zero;
 
-            var atomTable = new AtomTable();
-            atomTable.Load();
-            
-            using (var fileStream = new FileStream(outputFileName, FileMode.Create))
+            var delphiProcessTracker = loopInterval == TimeSpan.Zero ? null : new DelphiApplicationTracker();
+            var atomTable = new AtomTable(delphiProcessTracker);
+            do
             {
-                var serializer = new XmlSerializer(typeof(AtomTable));
-                serializer.Serialize(fileStream, atomTable);
+                atomTable.Load();
+                string outputFileName = Environment.ExpandEnvironmentVariables(string.Format(outputFileNameTemplate, DateTime.Now));
+                using (var fileStream = new FileStream(outputFileName, FileMode.Create))
+                {
+                    var serializer = new XmlSerializer(typeof(AtomTable));
+                    serializer.Serialize(fileStream, atomTable);
+                }
+                Thread.Sleep(loopInterval);
             }
+            while (loopInterval != TimeSpan.Zero);
         }
     }
 }

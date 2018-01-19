@@ -45,7 +45,9 @@
   <ItemGroup>
     <Compile Include="AtomTable.cs" />
     <Compile Include="AtomTableEntry.cs" />
+    <Compile Include="DelphiApplicationTracker.cs" />
     <Compile Include="NativeMethods.cs" />
+    <Compile Include="DelphiApplication.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
