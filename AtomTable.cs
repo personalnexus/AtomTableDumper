@@ -28,7 +28,7 @@ namespace AtomTableDumper
         public int GlobalAtomCount { get; set; }
 
         [XmlArrayItem(ElementName = "DelphiApplication")]
-        public List<DelphiApplication> DelphiApplications { get { return _delphiApplicationTracker?.GetProcesses(); } set { } }
+        public List<DelphiApplication> DelphiApplications { get { return _delphiApplicationTracker?.GetApplications(); } set { } }
 
         [XmlArrayItem(ElementName = "RegisteredWindowMessage")]
         public List<AtomTableEntry> RegisteredWindowMessages { get; set; }

@@ -13,8 +13,8 @@ namespace AtomTableDumper
             string outputFileNameTemplate = commandLineArguments.Length >= 2 ? commandLineArguments[1] : "%TEMP%\\AtomTableDumper_%COMPUTERNAME%_{0:yyyy-MM_dd-HH-mm-ss}.xml";
             TimeSpan loopInterval = commandLineArguments.Length >= 3 ? TimeSpan.Parse(commandLineArguments[2]) : TimeSpan.Zero;
 
-            var delphiProcessTracker = loopInterval == TimeSpan.Zero ? null : new DelphiApplicationTracker();
-            var atomTable = new AtomTable(delphiProcessTracker);
+            var delphiApplicationTracker = loopInterval == TimeSpan.Zero ? null : new DelphiApplicationTracker();
+            var atomTable = new AtomTable(delphiApplicationTracker);
             do
             {
                 atomTable.Load();
