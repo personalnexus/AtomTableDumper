@@ -8,33 +8,55 @@ namespace AtomTableDumper
     public class DelphiApplicationTracker
     {
         private readonly Dictionary<string, DelphiApplication> _trackedApplicationsByName = new Dictionary<string, DelphiApplication>();
+        private readonly HashSet<string> _unknownAtomNames = new HashSet<string>();
        
         public void IdentifyDelphiApplications(IEnumerable<AtomTableEntry> atomTableEntries)
-        {   
+        {
             Process[] currentProcesses = Process.GetProcesses();
             Dictionary<int, string> currentProcessNamesById = currentProcesses.ToDictionary(process => process.Id, process => process.ProcessName);
             Dictionary<int, string> currentProcessNamesByThreadId = GetProcessNamesByThreadId(currentProcesses);
 
+            IdentifyDelphiApplications(atomTableEntries, currentProcessNamesById, currentProcessNamesByThreadId);
+        }
+
+        public void IdentifyDelphiApplications(IEnumerable<AtomTableEntry> atomTableEntries, IDictionary<int, string> currentProcessNamesById, IDictionary<int, string> currentProcessNamesByThreadId)
+        {   
+            var currentAtoms = new HashSet<string>(atomTableEntries.Select(x => x.Name));
+
             foreach (AtomTableEntry atomTableEntry in atomTableEntries)
             {
-                string processName;
                 //
-                // Atom names starting with "Delphi" end with the process ID
-                // Atom names starting with "ControlOfs" end with the thread ID
+                // Don't match previously unknown atoms to new processes/threads that happen to be reusing the same ID
                 //
-                if (atomTableEntry.Name.Length > IdLength &&
-                    (TryGetDelphiProcessName(atomTableEntry, "Delphi", currentProcessNamesById, out processName) ||
-                     TryGetDelphiProcessName(atomTableEntry, "ControlOfs", currentProcessNamesByThreadId, out processName)))
+                if (!_unknownAtomNames.Contains(atomTableEntry.Name))
                 {
-                    DelphiApplication delphiApplication;
-                    if (!_trackedApplicationsByName.TryGetValue(processName, out delphiApplication))
+                    string processName;
+                    //
+                    // Atom names starting with "Delphi" end with the process ID
+                    // Atom names starting with "ControlOfs" end with the thread ID
+                    //
+                    if (atomTableEntry.Name.Length > IdLength &&
+                        (TryGetDelphiProcessName(atomTableEntry, "Delphi", currentProcessNamesById, out processName) ||
+                         TryGetDelphiProcessName(atomTableEntry, "ControlOfs", currentProcessNamesByThreadId, out processName)))
                     {
-                        delphiApplication = new DelphiApplication(processName);
-                        _trackedApplicationsByName.Add(processName, delphiApplication);
+                        DelphiApplication delphiApplication;
+                        if (!_trackedApplicationsByName.TryGetValue(processName, out delphiApplication))
+                        {
+                            delphiApplication = new DelphiApplication(processName);
+                            _trackedApplicationsByName.Add(processName, delphiApplication);
+                        }
+                        delphiApplication.AddAtom(atomTableEntry.Name);
                     }
-                    delphiApplication.AddAtom(atomTableEntry.Name);
+                    else
+                    {
+                        _unknownAtomNames.Add(atomTableEntry.Name);
+                    }
                 }
             }
+            //
+            // If a previously unknown atom is no longer registered, it must be forgotten, as it can be registered again by another process in the future
+            //
+            _unknownAtomNames.IntersectWith(currentAtoms);
         }
 
         private static Dictionary<int, string> GetProcessNamesByThreadId(Process[] currentProcesses)
@@ -65,7 +87,7 @@ namespace AtomTableDumper
 
         private const int IdLength = 8;
 
-        private static bool TryGetDelphiProcessName(AtomTableEntry atomTableEntry, string prefix, Dictionary<int, string> processNamesbyId, out string processName)
+        private static bool TryGetDelphiProcessName(AtomTableEntry atomTableEntry, string prefix, IDictionary<int, string> processNamesbyId, out string processName)
         {
             processName = null;
             if (atomTableEntry.Name.StartsWith(prefix))
@@ -83,6 +105,11 @@ namespace AtomTableDumper
         public List<DelphiApplication> GetApplications()
         {
             return _trackedApplicationsByName.Values.ToList();
+        }
+
+        public List<string> GetUnknownAtomNames()
+        {
+            return _unknownAtomNames.ToList();
         }
     }
 }
